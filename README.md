@@ -15,6 +15,8 @@ Requires substantial updating for 40.x, which is a work in progress.
 ### /_Run Me First (make folders and symlinks).bat
 I was told late in the 34.11 days that symlinks do not survive compression - and I rely on them to put user-created application data in the User Content folder while also below some utilities.  This script simply recreates the symlinks after unzipping, and should be run first-thing - *especially* before the content-pulling script.  
 
+### /LNP/utilities/World Viewer/World Viewer.bat
+A batch file that checks whether the system is 32 or 64 bit, and launches the appropriate version of World Viewer.  Simplifies the utilities list when you show this instead of two executables.  
  
 =================================
 
