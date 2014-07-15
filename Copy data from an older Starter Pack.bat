@@ -2,18 +2,25 @@
 SETLOCAL
 
 echo This script copies across save data from your last install of Dwarf Fortress. 
-echo It's designed to work with older versions of the Dwarf Fortress Strter Pack, 
+echo It's designed to work with older versions of the Dwarf Fortress Starter Pack, 
 echo and can import saves from a copy of the vanilla game too.  
 echo. 
 echo All of these depend on the name of the folder staying default, and this new pack being in the same folder as the old one.  
 echo.
 timeout /t 60
 
+rem abort the whole thing if there are already save files in place, overwriting would be BAD
+IF NOT EXIST "%CD%\Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save\region*" (
+    echo There are already save files in this pack!  
+    echo.
+    echo To avoid overwriting your data, this script will do nothing when save files are found.  
+    GOTO finish
+)
 
-::gives 'Dwarf Fortress %major_DF_version%_%minor_DF_version% Starter Pack r%release#%' - aim is to reverse this
+::Our pack is 'Dwarf Fortress %major_DF_version%_%minor_DF_version% Starter Pack r%release#%' - let's find the numbers
+:: get name of folder as string
 for %%* in ("%CD%") do set CurrDirName=%%~n*
-
-:: split name up by spaces, and keep the numbers as interim variables (not working yet)
+:: split name up by spaces, and keep the numbers as interim variables
 for /f "tokens=1,2,3,4,5,6 delims= " %%a in ("%CurrDirName%") do (
     set "version_string=%%c"
     set "release_r#=%%f"
@@ -23,85 +30,77 @@ for /f "tokens=1,2 delims=_" %%a in ("%version_string%") do (
     set "major_DF_version=%%a"
     set "minor_DF_version=%%b"
 )
+if not "%major_DF_version%==40" (
+    echo This script assumes that you are using DF v0.40.xx - it might not work for earlier or later versions
+    goto finish
+)
 rem strip 'r' from release # by adding to end and stripping a character from each side
 set "release##=%release_r#%r"
 set "release#=%release##:~1,-1%
-
 ::we now have interger variables for major and minor DF version, and pack release number.
 
 ::find an older pack...
-:: subtract 1 from current version to avoid circular copies
-SET /A "result=%release#% - 1"
-:: count down pack releases from current to 1
-FOR /L %%G IN (%result%,-1,0) do (
-    IF EXIST "%CD%\..\Dwarf Fortress %version_string% Starter Pack r%%G\" (
-        set "previous_version=%CD%\..\Dwarf Fortress %version_string% Starter Pack r%%G\"
-        goto Starter_Pack_found
+SET /A "old_release=%release#% - 1" rem avoid circular copies
+FOR /K %%F IN (%minor_DF_version%,-1,03) do (       rem     iterate down through minor DF versions to 03, since lower is not save-compatible
+    if "%%F LSS %minor_DF_version%" (
+        set "old_release=10"        rem 10 should work for some time given bugfix DF releases
+        :: can add magic numbers here to iterate the correct number of times (ie # of packs for each minor version
+        :: eg:  '''if "%%F==02" set "old_release=1" rem there were 1 pack releases for 40_02'''
+    )
+    FOR /L %%G IN (%old_release%,-1,1) do (         rem     iterate down through pack versions to r1 (resets to this each DF update)
+        IF EXIST "%CD%\..\Dwarf Fortress %major_DF_version%_%%F Starter Pack r%%G\" (
+            set "previous_version=%CD%\..\Dwarf Fortress %major_DF_version%_%%F Starter Pack r%%G\"
+            set "old_DF_folder=%previous_version%Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\"
+            call:copy_saves_and_gamelog
+            call:copy_UGC_and_symlinked_data
+            call:done_copying
+            goto finish
+        )
+    )
+    IF EXIST "%CD%\..\df_%major_DF_version%_%%F_win\" ( rem vanilla DF
+        set "previous_version=%CD%\..\df_%major_DF_version%_%%F_win\"
+        set "old_DF_folder=%previous_version%"
+        call:copy_saves_and_gamelog
+        call:done_copying
+        goto finish
     )
 )
-
-::special case, r1 used 40.01 instead of 40_01 which messed up parsing somehow
-IF EXIST "%CD%\..\Dwarf Fortress 40.01 Starter Pack r1\" (
-    set "previous_version=%CD%\..\Dwarf Fortress 40.01 Starter Pack r1\"
-    goto Starter_Pack_found
-)
-
-rem Vanilla DF:
-IF EXIST "%CD%\..\df_34_11_win\" (
-    set "previous_version=%CD%\..\df_34_11_win\"
-    GOTO vanilla_DF
-    )
-rem no compatible pack found?
-GOTO no_pack_found
-
-rem abort the whole thing if there are already save files in place, overwriting would be BAD
-IF NOT EXIST "%CD%\Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save\region*" goto no_saves_here
-echo There are already save files in this pack!  
 echo.
-echo To avoid overwriting your data, this script will do nothing when save files are found.  
-GOTO finish
-:no_saves_here
+echo No compatible pack was found!  This script only works when your old install still has the default name, and is in the same folder as this install.
+echo.
+echo You can still keep save data and the gamelog from other packs or if you changed the name - you'll just need to copy-paste them by hand.
+echo.
+echo If you're trying to copy from before a big update, saves from before DF 0.40.03 are not compatible, so prior packs will not be detected.
 
-:Starter_Pack_found
+:finish
+timeout /t 60
+exit
+
+::---------------------------------
+::----    Copying functions    ----
+::---------------------------------
+
+:copy_saves_and_gamelog
 echo.
 echo Copying the gamelog ...
-COPY "%previous_version%Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\gamelog.txt" "%CD%\Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\gamelog.txt"
+COPY "%old_DF_folder%gamelog.txt" "%CD%\Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\gamelog.txt"
 echo.
 echo Copying the save folders...
-ROBOCOPY "%previous_version%Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save" "%CD%\Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save" /e /NFL /NDL /NJH /NJS /nc /ns /xo
+ROBOCOPY "%old_DF_folder%data\save" "%CD%\Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save" /e /NFL /NDL /NJH /NJS /nc /ns /xo
+goto:EOF
+
+:copy_UGC_and_symlinked_data
 echo.
-echo Copying user generated content...
+echo Copying user generated content and symlinked data...
 ROBOCOPY "%previous_version%User Generated Content" "%CD%\User Generated Content" /e /NFL /NDL /NJH /NJS /nc /ns /xo
 echo.
 echo Copying the music and sound files for soundSense...
 ROBOCOPY "%previous_version%LNP\utilities\soundsense\packs" "%CD%\LNP\utilities\soundsense\packs" /e /NFL /NDL /NJH /NJS /nc /ns /xo
-)
-echo.
-goto finished_copying
+goto:EOF
 
-:vanilla_DF
-echo.
-echo Copying the gamelog ...
-COPY "%previous_version%gamelog.txt" "%CD%\Dwarf Fortress 0.34.11\gamelog.txt"
-echo.
-echo Copying the save folders...
-ROBOCOPY "%previous_version%data\save" "%CD%\Dwarf Fortress 0.34.11\data\save" /e /NFL /NDL /NJH /NJS /nc /ns /xo
-goto finished_copying
-
-:finished_copying
-echo.
+:done_copying
 echo. 
 echo Finished copying your data to this pack, from %previous_version%
-echo. 
+echo.
 echo Keep the old pack until you're sure everything has made it across - this didn't copy settings, only content.  
-goto finish
-
-:no_pack_found
-echo.
-echo No compatible pack was found!  This only works when your old install still has the default name, and is in the same folder as this install!
-echo.
-echo You can still keep save data and the gamelog from other packs or if you changed the name - you'll just need to copy-paste them by hand :(
-GOTO finish
-
-:finish
-timeout /t 60
+goto:EOF

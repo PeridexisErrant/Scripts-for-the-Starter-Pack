@@ -1,21 +1,23 @@
 Scripts for the Starter Pack
 ============================
 
-A collection of simple scripts written to enhance the [DF Starter Pack](http://www.bay12forums.com/smf/index.php?topic=126076).  I've published them here for public review, to enable contributions, and because publishing encourages me to comment properly ;)
+A collection of simple scripts written to enhance the [DF Starter Pack](http://www.bay12forums.com/smf/index.php?topic=126076).  I've published them here for public review, to enable contributions, and because publishing encourages me to comment and structure my code properly ;)
 
 Unless noted otherwise in the description or at the top of the .bat file itself, they are used from the root folder of the Starter Pack.  Scripts for the 34.11 pack have their own folder, the others are for 40.x
 
 =================================
 
-### /Copy data from an older Starter Pack.bat
-If run from `/foo/... r6/`, it checks for `/foo/... r5/`, `/foo/... r4/`, etc and will copy saves and user content to the newer pack.  
+#### /Copy data from an older Starter Pack.bat
+A tool designed to make updating to a newer release of the Starter Pack as painless as possible.  It does not recognise older packages with incompatible saves; there you must copy any desired files across yourself.  
 
-Requires substantial updating for 40.x, which is a work in progress.  
+It assumes that the target pack is in the same parent folder as the destination pack (from which the script is run).  It checks for compatible packs; iterating through possible candidates by minor DF release, then pack release number - treating vanilla DF as pack release zero.  
 
-### /_Run Me First (make folders and symlinks).bat
+When the first compatible pack is found, it copies the gamelog and save folder from the target to the destination, and if copying from a Starter Pack also copies the `User Generated Content` folder and the soundsense sound files to avoid a slow re-download.  
+
+#### /_Run Me First (make folders and symlinks).bat
 I was told late in the 34.11 days that symlinks do not survive compression - and I rely on them to put user-created application data in the User Content folder while also below some utilities.  This script simply recreates the symlinks after unzipping, and should be run first-thing - *especially* before the content-pulling script.  
 
-### /LNP/utilities/World Viewer/World Viewer.bat
+#### /LNP/utilities/World Viewer/World Viewer.bat
 A batch file that checks whether the system is 32 or 64 bit, and launches the appropriate version of World Viewer.  Simplifies the utilities list when you show this instead of two executables.  
  
 =================================
@@ -26,8 +28,8 @@ The Starter Pack for DF 34.11 can be found [here](http://dffd.wimbli.com/file.ph
 
 `Copy data from an older Starter Pack.bat` and `_Run Me First (make folders and symlinks).bat` work as described above, with slight differences to match the circumstances of the pack.  
 
-### /Dwarf Fortress 34.11/_Move .dfmap files for Overseer.bat
+#### /Dwarf Fortress 34.11/_Move .dfmap files for Overseer.bat
 Copies all files of form `*.dfmap` to `User Generated Content/Overseer map files/`.  These files are exported with the dfhack command `mapexport`, and used by the utility Fortress Overseer.  They are *much* easier to find with the GUI if placed in a subfolder (created by symlink per above).
 
-### /LNP/utilities/dfterm3 v0.3.1/call-dfterm3.bat
+#### /LNP/utilities/dfterm3 v0.3.1/call-dfterm3.bat
 Placed in a folder with `dfterm3-0.3.1-setup.exe`, this script is designed to replace the dfterm entry in the utilities list - it installs dfterm3 if it's not already installed, or launches it if it is.  
