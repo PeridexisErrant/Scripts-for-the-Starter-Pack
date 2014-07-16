@@ -9,14 +9,6 @@ echo All of these depend on the name of the folder staying default, and this new
 echo.
 timeout /t 60
 
-rem abort the whole thing if there are already save files in place, overwriting would be BAD
-IF NOT EXIST "%CD%\Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save\region*" (
-    echo There are already save files in this pack!  
-    echo.
-    echo To avoid overwriting your data, this script will do nothing when save files are found.  
-    GOTO finish
-)
-
 ::Our pack is 'Dwarf Fortress %major_DF_version%_%minor_DF_version% Starter Pack r%release#%' - let's find the numbers
 :: get name of folder as string
 for %%* in ("%CD%") do set CurrDirName=%%~n*
@@ -30,14 +22,18 @@ for /f "tokens=1,2 delims=_" %%a in ("%version_string%") do (
     set "major_DF_version=%%a"
     set "minor_DF_version=%%b"
 )
-if not "%major_DF_version%==40" (
-    echo This script assumes that you are using DF v0.40.xx - it might not work for earlier or later versions
-    goto finish
-)
 rem strip 'r' from release # by adding to end and stripping a character from each side
 set "release##=%release_r#%r"
 set "release#=%release##:~1,-1%
 ::we now have interger variables for major and minor DF version, and pack release number.
+
+rem abort the whole thing if there are already save files in place, overwriting would be BAD
+IF EXIST "%CD%\Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save\region*" (
+    echo There are already save files in this pack!  
+    echo.
+    echo To avoid overwriting your data, this script will do nothing when save files are found.  
+    GOTO finish
+)
 
 ::find an older pack...
 SET /A "old_release=%release#% - 1" rem avoid circular copies
