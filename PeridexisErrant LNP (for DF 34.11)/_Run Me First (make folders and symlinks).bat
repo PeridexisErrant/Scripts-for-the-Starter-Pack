@@ -18,11 +18,11 @@ cd /D "%~dp0"
 setlocal enabledelayedexpansion
 
 set name[0]=User Blueprints
-set source[0]=%CD%\LNP\utilities\Quickfort 2.04\blueprints\User Blueprints
-set dest[0]=%CD%\User Generated Content\User Blueprints
+set source[0]=LNP\utilities\Quickfort 2.04\blueprints\User Blueprints
+set dest[0]=User Generated Content\User Blueprints
 set name[1]=Overseer map files
-set source[1]=%CD%\LNP\utilities\Overseer 0.70.1\_Map Files for Overseer
-set dest[1]=%CD%\User Generated Content\Overseer map files
+set source[1]=LNP\utilities\Overseer 0.70.1\_Map Files for Overseer
+set dest[1]=User Generated Content\Overseer map files
 
 echo Creating Symlinks...
 echo.

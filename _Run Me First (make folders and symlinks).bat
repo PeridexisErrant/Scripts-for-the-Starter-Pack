@@ -18,8 +18,8 @@ cd /D "%~dp0"
 setlocal enabledelayedexpansion
 
 set name[0]=User Blueprints
-set source[0]=%CD%\LNP\utilities\Quickfort 2.04\blueprints\User Blueprints
-set dest[0]=%CD%\User Generated Content\User Blueprints
+set source[0]=LNP\utilities\Quickfort 2.04\blueprints\User Blueprints
+set dest[0]=User Generated Content\User Blueprints
 
 echo Creating Symlinks...
 echo.
