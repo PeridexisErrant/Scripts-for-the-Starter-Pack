@@ -9,25 +9,11 @@ echo All of these depend on the name of the folder staying default, and this new
 echo.
 timeout /t 60
 
-::Our pack is 'Dwarf Fortress %major_DF_version%_%minor_DF_version% Starter Pack r%release#%' - let's find the numbers
-:: get name of folder as string
-for %%* in ("%CD%") do set CurrDirName=%%~n*
-:: split name up by spaces, and keep the numbers as interim variables
-for /f "tokens=1,2,3,4,5,6 delims= " %%a in ("%CurrDirName%") do (
-    set "version_string=%%c"
-    set "release_r#=%%f"
-)
-::split version_string into major and minor version numbers
-for /f "tokens=1,2 delims=_" %%a in ("%version_string%") do (
-    set "major_DF_version=%%a"
-    set "minor_DF_version=%%b"
-)
-rem strip 'r' from release # by adding to end and stripping a character from each side
-set "release##=%release_r#%r"
-set "release#=%release##:~1,-1%
-::we now have interger variables for major and minor DF version, and pack release number.
+call:get_future_pack_info
+echo New pack is "%major_DF_version%_%minor_DF_version% r%release#%"
+echo.
 
-rem abort the whole thing if there are already save files in place, overwriting would be BAD
+:: abort the whole thing if there are already save files in place, overwriting would be BAD
 IF EXIST "%CD%\Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save\region*" (
     echo There are already save files in this pack!  
     echo.
@@ -41,10 +27,6 @@ for /L %%G in (1,1,10) do (
     if "%minor_DF_version%" == "0%%G" set minor_DF_version_int=%%G
 )
 set /a "old_release=%release#% - 1"
-
-for /L %%G in (1,1,100) do (
-    if "%release#%" == "%%G" set /a "old_release=%%G-1"
-)
 
 ::FOR /L %%F IN (%minor_DF_version_int%,-1,2) do (       rem     iterate down through minor DF versions to 03, since lower is not save-compatible
 ::    if not "%%F" == "%minor_DF_version_int%" (
@@ -82,9 +64,30 @@ echo.
 timeout /t 60
 exit
 
-::---------------------------------
-::----    Copying functions    ----
-::---------------------------------
+::-------------------------
+::----    functions    ----
+::-------------------------
+
+:get_future_pack_info
+::Our pack is 'Dwarf Fortress %major_DF_version%_%minor_DF_version% Starter Pack r%release#%' - let's find the numbers
+:: get name of folder as string
+for %%* in ("%CD%") do set CurrDirName=%%~n*
+:: split name up by spaces, and keep the numbers as interim variables
+for /f "tokens=1,2,3,4,5,6 delims= " %%a in ("%CurrDirName%") do (
+    set "version_string=%%c"
+    set "release_r#=%%f"
+)
+::split version_string into major and minor version numbers
+for /f "tokens=1,2 delims=_" %%a in ("%version_string%") do (
+    set "major_DF_version=%%a"
+    set "minor_DF_version=%%b"
+)
+rem strip 'r' from release # by adding to end and stripping a character from each side
+set "release##=%release_r#%r"
+set "release#=%release##:~1,-1%
+::we now have variables for major and minor DF version, and pack release number.
+:: nb- a zero padded number (eg '04') is treated as a string, not an integer (affects minor version)
+goto:EOF
 
 :copy_saves_and_gamelog
 echo.
