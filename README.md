@@ -3,7 +3,9 @@ Scripts for the Starter Pack
 
 A collection of simple scripts written to enhance the [DF Starter Pack](http://www.bay12forums.com/smf/index.php?topic=126076).  I've published them here for public review, to enable contributions, and because publishing encourages me to comment and structure my code properly ;)
 
-Unless noted otherwise in the description or at the top of the .bat file itself, they are used from the root folder of the Starter Pack.  Scripts for the 34.11 pack have their own folder, the others are for 40.x
+Unless noted otherwise in the description or at the top of the .bat file itself, they are used from the root folder of the Starter Pack.  Scripts for the 34.11 pack have their own folder, the others are for 40.xx
+
+Contributions are very welcome; please send pull requests to the development branch.  
 
 =================================
 
