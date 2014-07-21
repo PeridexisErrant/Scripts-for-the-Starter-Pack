@@ -9,14 +9,6 @@ echo All of these depend on the name of the folder staying default, and this new
 echo.
 timeout /t 60
 
-rem abort the whole thing if there are already save files in place, overwriting would be BAD
-IF NOT EXIST "%CD%\Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save\region*" (
-    echo There are already save files in this pack!  
-    echo.
-    echo To avoid overwriting your data, this script will do nothing when save files are found.  
-    GOTO finish
-)
-
 ::Our pack is 'Dwarf Fortress %major_DF_version%_%minor_DF_version% Starter Pack r%release#%' - let's find the numbers
 :: get name of folder as string
 for %%* in ("%CD%") do set CurrDirName=%%~n*
@@ -30,26 +22,39 @@ for /f "tokens=1,2 delims=_" %%a in ("%version_string%") do (
     set "major_DF_version=%%a"
     set "minor_DF_version=%%b"
 )
-if not "%major_DF_version%==40" (
-    echo This script assumes that you are using DF v0.40.xx - it might not work for earlier or later versions
-    goto finish
-)
 rem strip 'r' from release # by adding to end and stripping a character from each side
 set "release##=%release_r#%r"
 set "release#=%release##:~1,-1%
 ::we now have interger variables for major and minor DF version, and pack release number.
 
+rem abort the whole thing if there are already save files in place, overwriting would be BAD
+IF EXIST "%CD%\Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save\region*" (
+    echo There are already save files in this pack!  
+    echo.
+    echo To avoid overwriting your data, this script will do nothing when save files are found.  
+    GOTO finish
+)
+
 ::find an older pack...
-SET /A "old_release=%release#% - 1" rem avoid circular copies
-FOR /K %%F IN (%minor_DF_version%,-1,03) do (       rem     iterate down through minor DF versions to 03, since lower is not save-compatible
-    if "%%F LSS %minor_DF_version%" (
-        set "old_release=10"        rem 10 should work for some time given bugfix DF releases
-        :: can add magic numbers here to iterate the correct number of times (ie # of packs for each minor version
-        :: eg:  '''if "%%F==02" set "old_release=1" rem there were 1 pack releases for 40_02'''
-    )
+set minor_DF_version_int=%minor_DF_version% rem because for can't take zero-padded numbers
+for /L %%G in (1,1,10) do (
+    if "%minor_DF_version%" == "0%%G" set minor_DF_version_int=%%G
+)
+set /a "old_release=%release#% - 1"
+
+for /L %%G in (1,1,100) do (
+    if "%release#%" == "%%G" set /a "old_release=%%G-1"
+)
+
+::FOR /L %%F IN (%minor_DF_version_int%,-1,2) do (       rem     iterate down through minor DF versions to 03, since lower is not save-compatible
+::    if not "%%F" == "%minor_DF_version_int%" (
+::        set "old_release=10"        rem 10 should work for some time given bugfix DF releases
+::        :: can add magic numbers here to iterate the correct number of times (ie # of packs for each minor version
+::        :: eg:  '''if "%%F" == "02" set "old_release=1" rem there were 1 pack releases for 40_02'''
+::    )
     FOR /L %%G IN (%old_release%,-1,1) do (         rem     iterate down through pack versions to r1 (resets to this each DF update)
-        IF EXIST "%CD%\..\Dwarf Fortress %major_DF_version%_%%F Starter Pack r%%G\" (
-            set "previous_version=%CD%\..\Dwarf Fortress %major_DF_version%_%%F Starter Pack r%%G\"
+        IF EXIST "%CD%\..\Dwarf Fortress %major_DF_version%_03 Starter Pack r%%G\" (
+            set "previous_version=%CD%\..\Dwarf Fortress %major_DF_version%_03 Starter Pack r%%G\" rem note zero-padding %%f only works up to 40_09
             set "old_DF_folder=%previous_version%Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\"
             call:copy_saves_and_gamelog
             call:copy_UGC_and_symlinked_data
@@ -57,14 +62,14 @@ FOR /K %%F IN (%minor_DF_version%,-1,03) do (       rem     iterate down through
             goto finish
         )
     )
-    IF EXIST "%CD%\..\df_%major_DF_version%_%%F_win\" ( rem vanilla DF
+    IF EXIST "%CD%\..\df_%major_DF_version%_0%%F_win\" ( rem vanilla DF, note zero-padding %%f only works up to 40_09
         set "previous_version=%CD%\..\df_%major_DF_version%_%%F_win\"
         set "old_DF_folder=%previous_version%"
         call:copy_saves_and_gamelog
         call:done_copying
         goto finish
     )
-)
+::)
 echo.
 echo No compatible pack was found!  This script only works when your old install still has the default name, and is in the same folder as this install.
 echo.
@@ -73,6 +78,7 @@ echo.
 echo If you're trying to copy from before a big update, saves from before DF 0.40.03 are not compatible, so prior packs will not be detected.
 
 :finish
+echo.
 timeout /t 60
 exit
 
@@ -100,7 +106,8 @@ goto:EOF
 
 :done_copying
 echo. 
-echo Finished copying your data to this pack, from %previous_version%
+echo Finished copying your data to this pack, from:
+echo "%previous_version%"
 echo.
 echo Keep the old pack until you're sure everything has made it across - this didn't copy settings, only content.  
 goto:EOF
