@@ -1,5 +1,5 @@
 @echo OFF
-SETLOCAL
+SETLOCAL EnableDelayedExpansion
 
 echo This script copies across save data from your last install of Dwarf Fortress. 
 echo It's designed to work with older versions of the Dwarf Fortress Starter Pack, 
@@ -34,23 +34,23 @@ for /L %%G in (%minor_DF_version_int%,-1,3) do (
     set "past_minor_DF_version_int=%%G"
     set "past_minor_DF_version=%%G"
     if %%G LEQ 9 set "past_minor_DF_version=0%%G"
-    if %past_minor_DF_version_int% LSS %minor_DF_version_int% set "past_release#=10"
-    for /L %%H IN (%past_release#%,-1,0) do (
+    if !past_minor_DF_version_int! LSS !minor_DF_version_int! set "past_release#=10"
+    for /L %%H IN (!past_release#!,-1,0) do (
         rem iterate down through pack versions to r1 (resets to this each DF update), plus r0 as a special self-update case
-        set "previous_version=..\Dwarf Fortress %major_DF_version%_%past_minor_DF_version% Starter Pack r%%H\"
-        IF EXIST %previous_version% (
-            set "old_DF_folder=%previous_version%Dwarf Fortress 0.%major_DF_version%.%past_minor_DF_version%\"
-            echo Past pack is "%major_DF_version%_%past_minor_DF_version% r%%H"
+        set "previous_version=..\Dwarf Fortress %major_DF_version%_!past_minor_DF_version! Starter Pack r%%H\"
+        IF EXIST !previous_version! (
+            set "old_DF_folder=!previous_version!Dwarf Fortress 0.%major_DF_version%.!past_minor_DF_version!\"
+            echo Past pack is "%major_DF_version%_!past_minor_DF_version! r%%H"
             call:copy_saves_and_gamelog
             call:copy_UGC_and_symlinked_data
             call:done_copying
             goto finish
         )
     )
-    set "previous_version=..\df_%major_DF_version%_%past_minor_DF_version%_win\"
-    IF EXIST %previous_version% (
-        set "old_DF_folder=%previous_version%"
-        echo Past pack is "Vanilla DF %major_DF_version%_%past_minor_DF_version%"
+    set "previous_version=..\df_%major_DF_version%_!past_minor_DF_version!_win\"
+    IF EXIST !previous_version! (
+        set "old_DF_folder=!previous_version!"
+        echo Past pack is "Vanilla DF %major_DF_version%_!past_minor_DF_version!"
         call:copy_saves_and_gamelog
         call:done_copying
         goto finish
@@ -73,7 +73,7 @@ rem ----    functions    ----
 rem -------------------------
 
 :get_future_pack_info
-rem Our pack is 'Dwarf Fortress %major_DF_version%_%minor_DF_version% Starter Pack r%release#%' - let's find the numbers
+rem Our pack is 'Dwarf Fortress %major_DF_version%_!minor_DF_version! Starter Pack r!release#!' - let's find the numbers
 rem get name of folder as string
 for %%* in ("%CD%") do set CurrDirName=%%~n*
 rem split name up by spaces, and keep the numbers as interim variables
@@ -96,25 +96,25 @@ goto:EOF
 :copy_saves_and_gamelog
 echo.
 echo Copying the gamelog ...
-COPY "%old_DF_folder%gamelog.txt" "Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\gamelog.txt"
+COPY "!old_DF_folder!gamelog.txt" "Dwarf Fortress 0.%major_DF_version%.!minor_DF_version!\gamelog.txt"
 echo.
 echo Copying the save folders...
-ROBOCOPY "%old_DF_folder%data\save" "Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save" /e /NFL /NDL /NJH /NJS /nc /ns /xo
+ROBOCOPY "!old_DF_folder!data\save" "Dwarf Fortress 0.%major_DF_version%.!minor_DF_version!\data\save" /e /NFL /NDL /NJH /NJS /nc /ns /xo
 goto:EOF
 
 :copy_UGC_and_symlinked_data
 echo.
 echo Copying user generated content and symlinked data...
-ROBOCOPY "%previous_version%User Generated Content" "User Generated Content" /e /NFL /NDL /NJH /NJS /nc /ns /xo
+ROBOCOPY "!previous_version!User Generated Content" "User Generated Content" /e /NFL /NDL /NJH /NJS /nc /ns /xo
 echo.
 echo Copying the music and sound files for soundSense...
-ROBOCOPY "%previous_version%LNP\utilities\soundsense\packs" "LNP\utilities\soundsense\packs" /e /NFL /NDL /NJH /NJS /nc /ns /xo
+ROBOCOPY "!previous_version!LNP\utilities\soundsense\packs" "LNP\utilities\soundsense\packs" /e /NFL /NDL /NJH /NJS /nc /ns /xo
 goto:EOF
 
 :done_copying
 echo. 
 echo Finished copying your data to this pack, from:
-echo "%previous_version%"
+echo "!previous_version!"
 echo.
 echo Keep the old pack until you're sure everything has made it across - this didn't copy settings, only content.  
 goto:EOF
