@@ -13,40 +13,34 @@ call:get_future_pack_info
 echo New pack is "%major_DF_version%_%minor_DF_version% r%release#%"
 echo.
 
-:: abort the whole thing if there are already save files in place, overwriting would be BAD
+rem abort the whole thing if there are already save files in place, overwriting would be BAD
 IF EXIST "Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save\region*" (
-    echo There are already save files in this pack!  
+    echo There are already save files in this pack!
     echo.
     echo To avoid overwriting your data, this script will do nothing when save files are found.  
     GOTO finish
 )
 
-::find an older pack...
-:: because for can't take zero-padded numbers
+rem find an older pack...
+rem because for can't take zero-padded numbers
 set minor_DF_version_int=%minor_DF_version%
 for /L %%G in (1,1,10) do (
     if "%minor_DF_version%" == "0%%G" set minor_DF_version_int=%%G
 )
 set /a "past_release#=%release#% - 1"
 
-:: iterate down through minor DF versions to 03, since lower is not save-compatible
-for /L %%F in (%minor_DF_version_int%,-1,3) do (
-    set "past_minor_DF_version=%%F"
-    if %%F LEQ 9 (
-        :: zero-pad single digits for string comparisons
-        set "past_minor_DF_version=0%%F" 
-    ) 
-    if not "%minor_DF_version%" == "%past_minor_DF_version%" (
-        set "past_release#=10"        rem 10 should work for some time given bugfix DF releases
-        :: can add magic numbers here to iterate the correct number of times (ie # of packs for each minor version
-        :: eg:  '''if "%%F" == "02" set "past_release#=1" rem there were 1 pack releases for 40_02'''
-    )
-    FOR /L %%G IN (%past_release#%,-1,0) do (
-    :: iterate down through pack versions to r1 (resets to this each DF update), plus r0 as a special self-update case
-        set "previous_version=..\Dwarf Fortress %major_DF_version%_%past_minor_DF_version% Starter Pack r%%G\"
+rem iterate down through minor DF versions to 03, since lower is not save-compatible
+for /L %%G in (%minor_DF_version_int%,-1,3) do (
+    set "past_minor_DF_version_int=%%G"
+    set "past_minor_DF_version=%%G"
+    if %%G LEQ 9 set "past_minor_DF_version=0%%G"
+    if %past_minor_DF_version_int% LSS %minor_DF_version_int% set "past_release#=10"
+    for /L %%H IN (%past_release#%,-1,0) do (
+        rem iterate down through pack versions to r1 (resets to this each DF update), plus r0 as a special self-update case
+        set "previous_version=..\Dwarf Fortress %major_DF_version%_%past_minor_DF_version% Starter Pack r%%H\"
         IF EXIST %previous_version% (
             set "old_DF_folder=%previous_version%Dwarf Fortress 0.%major_DF_version%.%past_minor_DF_version%\"
-            echo Past pack is "%major_DF_version%_%past_minor_DF_version% r%%G"
+            echo Past pack is "%major_DF_version%_%past_minor_DF_version% r%%H"
             call:copy_saves_and_gamelog
             call:copy_UGC_and_symlinked_data
             call:done_copying
@@ -74,20 +68,20 @@ echo.
 timeout /t 60
 exit
 
-::-------------------------
-::----    functions    ----
-::-------------------------
+rem -------------------------
+rem ----    functions    ----
+rem -------------------------
 
 :get_future_pack_info
-::Our pack is 'Dwarf Fortress %major_DF_version%_%minor_DF_version% Starter Pack r%release#%' - let's find the numbers
-:: get name of folder as string
+rem Our pack is 'Dwarf Fortress %major_DF_version%_%minor_DF_version% Starter Pack r%release#%' - let's find the numbers
+rem get name of folder as string
 for %%* in ("%CD%") do set CurrDirName=%%~n*
-:: split name up by spaces, and keep the numbers as interim variables
+rem split name up by spaces, and keep the numbers as interim variables
 for /f "tokens=1,2,3,4,5,6 delims= " %%a in ("%CurrDirName%") do (
     set "version_string=%%c"
     set "release_r#=%%f"
 )
-::split version_string into major and minor version numbers
+rem split version_string into major and minor version numbers
 for /f "tokens=1,2 delims=_" %%a in ("%version_string%") do (
     set "major_DF_version=%%a"
     set "minor_DF_version=%%b"
@@ -95,8 +89,8 @@ for /f "tokens=1,2 delims=_" %%a in ("%version_string%") do (
 rem strip 'r' from release # by adding to end and stripping a character from each side
 set "release##=%release_r#%r"
 set "release#=%release##:~1,-1%
-::we now have variables for major and minor DF version, and pack release number.
-:: nb- a zero padded number (eg '04') is treated as a string, not an integer (affects minor version)
+rem we now have variables for major and minor DF version, and pack release number.
+rem nb- a zero padded number (eg '04') is treated as a string, not an integer (affects minor version)
 goto:EOF
 
 :copy_saves_and_gamelog
