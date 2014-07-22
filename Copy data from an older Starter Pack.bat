@@ -22,35 +22,41 @@ IF EXIST "Dwarf Fortress 0.%major_DF_version%.%minor_DF_version%\data\save\regio
 )
 
 ::find an older pack...
-set minor_DF_version_int=%minor_DF_version% rem because for can't take zero-padded numbers
+:: because for can't take zero-padded numbers
+set minor_DF_version_int=%minor_DF_version%
 for /L %%G in (1,1,10) do (
     if "%minor_DF_version%" == "0%%G" set minor_DF_version_int=%%G
 )
 set /a "past_release#=%release#% - 1"
 
-FOR /L %%F IN (%minor_DF_version_int%,-1,3) do (       rem     iterate down through minor DF versions to 03, since lower is not save-compatible
-	set "past_minor_DF_version=%%F"
-	if %%F LEQ 9 ( set "past_minor_DF_version=0%%F" ) rem zero-pad single digits for string comparisons
+:: iterate down through minor DF versions to 03, since lower is not save-compatible
+for /L %%F in (%minor_DF_version_int%,-1,3) do (
+    set "past_minor_DF_version=%%F"
+    if %%F LEQ 9 (
+        :: zero-pad single digits for string comparisons
+        set "past_minor_DF_version=0%%F" 
+    ) 
     if not "%minor_DF_version%" == "%past_minor_DF_version%" (
         set "past_release#=10"        rem 10 should work for some time given bugfix DF releases
         :: can add magic numbers here to iterate the correct number of times (ie # of packs for each minor version
         :: eg:  '''if "%%F" == "02" set "past_release#=1" rem there were 1 pack releases for 40_02'''
     )
-    FOR /L %%G IN (%past_release#%,-1,1) do (         rem     iterate down through pack versions to r1 (resets to this each DF update)
+    FOR /L %%G IN (%past_release#%,-1,0) do (
+    :: iterate down through pack versions to r1 (resets to this each DF update), plus r0 as a special self-update case
         set "previous_version=..\Dwarf Fortress %major_DF_version%_%past_minor_DF_version% Starter Pack r%%G\"
-		IF EXIST %previous_version% (
+        IF EXIST %previous_version% (
             set "old_DF_folder=%previous_version%Dwarf Fortress 0.%major_DF_version%.%past_minor_DF_version%\"
-			echo Past pack is "%major_DF_version%_%past_minor_DF_version% r%%G"
+            echo Past pack is "%major_DF_version%_%past_minor_DF_version% r%%G"
             call:copy_saves_and_gamelog
             call:copy_UGC_and_symlinked_data
             call:done_copying
             goto finish
         )
     )
-    set "previous_version=..\df_%major_DF_version%_%past_minor_DF_version%_win\" rem vanilla DF
-	IF EXIST %previous_version% (
+    set "previous_version=..\df_%major_DF_version%_%past_minor_DF_version%_win\"
+    IF EXIST %previous_version% (
         set "old_DF_folder=%previous_version%"
-		echo Past pack is "Vanilla DF %major_DF_version%_%past_minor_DF_version%"
+        echo Past pack is "Vanilla DF %major_DF_version%_%past_minor_DF_version%"
         call:copy_saves_and_gamelog
         call:done_copying
         goto finish
