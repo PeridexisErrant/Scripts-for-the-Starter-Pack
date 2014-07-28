@@ -1,6 +1,9 @@
 @echo OFF
 SETLOCAL EnableDelayedExpansion
 
+rem The oldest minor version saves compatible with the current version:
+set "oldest_compat_save_int=5" rem as of 40_05; while 03 is techincally compatible there are many issues with graphics packs
+
 echo This script copies across save data from your last install of Dwarf Fortress. 
 echo It's designed to work with older versions of the Dwarf Fortress Starter Pack, 
 echo and can import saves from a copy of the vanilla game too.  
@@ -30,7 +33,7 @@ for /L %%G in (1,1,10) do (
 set /a "past_release#=%release#% - 1"
 
 rem iterate down through minor DF versions to 03, since lower is not save-compatible
-for /L %%G in (%minor_DF_version_int%,-1,3) do (
+for /L %%G in (%minor_DF_version_int%,-1,%oldest_compat_save_int%) do (
     set "past_minor_DF_version_int=%%G"
     set "past_minor_DF_version=%%G"
     if %%G LEQ 9 set "past_minor_DF_version=0%%G"
