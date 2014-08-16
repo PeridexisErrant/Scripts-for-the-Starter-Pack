@@ -18,6 +18,11 @@ When the first compatible pack is found, it copies the gamelog and save folder f
 
 #### /LNP/utilities/World Viewer/World Viewer.bat
 A batch file that checks whether the system is 32 or 64 bit, and launches the appropriate version of World Viewer.  Simplifies the utilities list when you show this instead of two executables.  
+
+#### ../pack_update_script.py
+NOT INTENDED FOR END USERS; published here because someone might be interested and version control is good for me.  
+
+A python script I wrote to help avoid forgetting to update various parts of the pack when a new version of DF is released.  Run from the parent folder of the starter pack, it will check various configuration files are up to date and other files exist.  Currently acts as a glorified checklist, but I plan to at some point soon expand it to actually make the needed changes instead of just checking for them.  
  
 =================================
 
