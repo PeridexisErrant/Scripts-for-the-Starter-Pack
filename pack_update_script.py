@@ -68,6 +68,8 @@ else:
                 print('\t' '<gamelog encoding="Cp850" path="..\\..\\..\\Dwarf Fortress 0.40.' + minor_version_str + '\\gamelog.txt"/>')
             elif fileinput.lineno() == 5:
                 print('\t\t' '<item path="..\\..\\..\\Dwarf Fortress 0.40.' + minor_version_str + '\\ss_fix.log"/>')
+            elif line == '</configuration>':
+                print(line)
             else:
                 print(line[:-1])
     print('Soundsense configuration was fixed OK')
@@ -101,7 +103,7 @@ if update_path:
 
 # check that graphics are installed
 if os.path.isfile(data_folder + 'art/Phoebus_16x16.png'):
-    print('Phoebus graphics instal is OK')
+    print('Phoebus graphics install is OK')
 else:
     print('Warning!    Phoebus graphics are not installed')
 
