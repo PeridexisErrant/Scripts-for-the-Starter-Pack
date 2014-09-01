@@ -23,7 +23,9 @@ A batch file that checks whether the system is 32 or 64 bit, and launches the ap
 NOT INTENDED FOR END USERS; published here because someone might be interested and version control is good for me.  
 
 A python script I wrote to help avoid forgetting to update various parts of the pack when a new version of DF is released.  Run from the parent folder of the starter pack, it will check various configuration files are up to date and other files exist.  It's been upgraded from check list to assistant, it can now update some configuration files (mostly paths to the DF folder, which includes a version string.  
- 
+
+If everything is OK, zip the pack, and finalise documentation for this version (calculate the checksum, insert that in the file, and write most of my forum post).
+
 =================================
 
 ## Legacy scripts from 34.11
