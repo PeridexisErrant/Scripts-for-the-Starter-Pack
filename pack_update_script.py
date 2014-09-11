@@ -20,6 +20,7 @@ for folder in os.listdir('.'):
         graphics_folder = folder + '/LNP/graphics/'
         utilities_folder = folder + '/LNP/utilities/'
         data_folder = folder + '/Dwarf Fortress 0.40.' + minor_version_str + '/data/'
+        plugins_folder = folder + '/Dwarf Fortress 0.40.' + minor_version_str + '/hack/plugins/'
 
         problems = 0
         break
@@ -71,6 +72,7 @@ else:
                 print('\t\t' '<item path="..\\..\\..\\Dwarf Fortress 0.40.' + minor_version_str + '\\ss_fix.log"/>')
             elif line == '</configuration>':
                 print(line)
+                break
             else:
                 print(line[:-1])
     print('Soundsense configuration was fixed OK')
@@ -114,7 +116,7 @@ else:
 # check that graphics are simplified
 for folder in os.listdir(graphics_folder):
     if os.path.isfile(graphics_folder + folder + '/Dwarf Fortress.exe'):
-        print('Warning!    ', folder, 'graphics pack is not simplified\n')
+        print('Warning!    ', folder, 'graphics pack is not simplified')
         problems += 1
 
 # check that a compatible DT memory layout is present
@@ -122,10 +124,83 @@ for folder in os.listdir(utilities_folder):
     if fnmatch.fnmatch(folder, 'Dwarf Therapist *'):
         DT_memory_layout = utilities_folder + folder + '/etc/memory_layouts/windows/v0.40.' + minor_version_str + '_graphics.ini'
 if os.path.isfile(DT_memory_layout):
-    print('Therapist memory layout is OK\n')
+    print('Therapist memory layout is OK')
 else:
-    print('Warning!    Dwarf Therapist memory layout for this version is missing\n')
+    print('Warning!    Dwarf Therapist memory layout for this version is missing')
     problems += 1
+
+# check if TwbT is installed
+TwbT_folder = 'DF addons (zipped)/TwbT/'
+if os.path.isfile(plugins_folder + 'twbt.plug.dll'):
+    print('TwbT plugin install is OK')
+
+    # folders to install to:
+    graphics_packs = []
+    for d in os.listdir(graphics_folder):
+        if os.path.isdir(graphics_folder + d):
+            if not 'ascii' in d.lower():
+                graphics_packs.append(d)
+
+    # install files to graphics packs
+    problem_packs = set()
+    for pack in graphics_packs:
+        art_folder = graphics_folder + pack + '/data/art/'
+        init_folder = graphics_folder + pack + '/data/init/'
+
+        # get text tileset
+        for item in os.listdir(TwbT_folder):
+            if item.startswith(pack+'_') and item.endswith('_text.png'):
+                text_tiles = item
+                break
+        else:
+            text_tiles = 'ShizzleClean.txt'
+
+        # files to copy into each graphics pack
+        to_copy_list = ['shadows.png',
+                        'overrides.txt',
+                        'Vanilla DF - 24x - Items.png',
+                        text_tiles]
+
+        # copy all the items into place if not present
+        for item in os.listdir(TwbT_folder):
+            for string in to_copy_list:
+                if string in item and item.endswith('.png') and not os.path.isfile(art_folder + item):
+                    shutil.copy(TwbT_folder + item, art_folder)
+                    problem_packs.add(pack)
+                elif string in item and item.endswith('.txt') and not os.path.isfile(init_folder + item):
+                    shutil.copy(TwbT_folder + item, init_folder)
+                    problem_packs.add(pack)
+        
+        # edit init files to work with TwbT
+        init_OK = True
+        for string in ['[FONT:'+text_tiles+']'
+                       , '[FULLFONT:'+text_tiles+']'
+                       , '[PRINT_MODE:STANDARD]']:
+            if not string in open(init_folder+'init.txt').read():
+                init_OK = False
+        if not init_OK:
+            with fileinput.input(files=(graphics_folder + pack + '/data/init/init.txt')
+                                 , inplace=True) as f:
+                for line in f:
+                    if line.startswith('[FONT:'):
+                        print('[FONT:'+text_tiles+']')
+                    elif line.startswith('[FULLFONT:'):
+                        print('[FULLFONT:'+text_tiles+']')
+                    elif line.startswith('[PRINT_MODE:'):
+                        print('[PRINT_MODE:STANDARD]')
+                    else:
+                        print(line[:-1])
+            problem_packs.add(pack)
+    # print messages if things were changed
+    if not len(problem_packs) == 0:
+        problems += 1
+        for pack in problem_packs:
+            print('Set up', pack, 'graphics for TwbT OK')
+    else:
+        print('Every TwbT file is OK')
+
+#########################################################################
+print()
 
 make_pack = False
 if problems == 0:
