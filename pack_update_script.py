@@ -5,6 +5,7 @@ import shutil
 import re
 import zipfile
 import hashlib
+import urllib.request
 
 print('A script to prepare the DF Starter Pack for upload.')
 print('Run from parent folder of pack.\n')
@@ -120,14 +121,24 @@ for folder in os.listdir(graphics_folder):
         problems += 1
 
 # check that a compatible DT memory layout is present
+memory_layout_file = 'v0.40.' + minor_version_str + '_graphics.ini'
 for folder in os.listdir(utilities_folder):
     if fnmatch.fnmatch(folder, 'Dwarf Therapist *'):
-        DT_memory_layout = utilities_folder + folder + '/etc/memory_layouts/windows/v0.40.' + minor_version_str + '_graphics.ini'
-if os.path.isfile(DT_memory_layout):
+        DT_layout_path = utilities_folder + folder + '/etc/memory_layouts/windows/'
+if os.path.isfile(DT_layout_path + memory_layout_file):
     print('Therapist memory layout is OK')
 else:
-    print('Warning!    Dwarf Therapist memory layout for this version is missing')
     problems += 1
+    url = str('https://raw.githubusercontent.com/splintermind/'
+              'Dwarf-Therapist/DF2014/share/memory_layouts/windows/'
+              + memory_layout_file)
+    try:
+        url_content = urllib.request.urlopen(url).read().decode(encoding='UTF-8')
+        with open(DT_layout_path + memory_layout_file, 'w') as f:
+            f.write(url_content)
+        print('DT memory layout downloaded OK')
+    except:
+        print('Warning!    DT memory layout unavailable')
 
 # check if TwbT is installed
 TwbT_folder = 'DF addons (zipped)/TwbT/'
