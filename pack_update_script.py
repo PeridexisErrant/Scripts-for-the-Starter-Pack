@@ -25,6 +25,62 @@ for folder in os.listdir('.'):
 
         problems = 0
         break
+if not os.path.isdir(data_folder):
+    print('Warning!    DF folder is malformed!')
+    problems = 99
+
+# check contents and changelog documentation
+docs_ok = True
+changelog, hashline = False, 0
+with fileinput.input(files=(folder + '/LNP/About/pack contents and changelog.txt')) as f:
+    for line in f:
+        if changelog:
+            if line == '\n':
+                break
+            elif len(line) < 10:
+                docs_ok = False
+        elif line.startswith('[tr][td]'):
+            if hashline == 1 and not line == '[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]\n':
+                print('hashline broken')
+                docs_ok = False
+            hashline += 1
+        elif line.strip() == version_str:
+            changelog = True
+if not docs_ok:
+    changelog, hashline = False, 0
+    with fileinput.input(files=(folder + '/LNP/About/pack contents and changelog.txt'), inplace=True) as f:
+        for line in f:
+            if changelog:
+                # remove short lines
+                if line == '\n':
+                    print()
+                    changelog = False
+                elif len(line) < 10:
+                    continue
+                elif line.startswith('40_'):
+                    changelog = False
+                    print('\n'+line[:-1])
+                else:
+                    print(line[:-1])
+            elif line.startswith('[tr][td]'):
+                if hashline == 1:
+                    if version_str in line:
+                        print('[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]')
+                    else:
+                        print('[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]')
+                        print(line[:-1])
+                else:
+                    print(line[:-1])
+                hashline += 1
+            elif line.strip() == version_str:
+                changelog = True
+                print(line[:-1])
+            else:
+                print(line[:-1])
+    print('Pack documentation fixed OK')
+    problems += 1
+else:
+    print('Pack documentation is OK')
 
 # check LNPWin has 'version: 0', and if not fix that line
 fixing_file = False
@@ -238,6 +294,15 @@ if make_pack:
         for chunk in iter(lambda: f.read(8192), b''): 
             md5.update(chunk)
     MD5 = md5.hexdigest().upper()
+
+    # insert checksum in old non-zipped docs
+    hashline = 0
+    with fileinput.input(files=(folder + '/LNP/About/pack contents and changelog.txt'), inplace=True) as f:
+        for line in f:
+            if line.startswith('[tr][td]' + version_str + '[/td][td]'):
+                print('[tr][td]' + version_str + '[/td][td]' + MD5 + '[/td][/tr]')
+            else:
+                print(line.replace('\n',''))
 
     # copy and update documentation
     for item in ['forum_post.txt', 'contents_and_changelog.txt']:
