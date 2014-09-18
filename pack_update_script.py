@@ -40,8 +40,8 @@ with fileinput.input(files=(folder + '/LNP/About/pack contents and changelog.txt
             elif len(line) < 10:
                 docs_ok = False
         elif line.startswith('[tr][td]'):
-            if hashline == 1 and not line == '[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]\n':
-                print('hashline broken')
+            if ((hashline == 1 and not line == '[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]\n')
+                or (hashline > 1 and 'unavailable' in line)):
                 docs_ok = False
             hashline += 1
         elif line.strip() == version_str:
@@ -69,6 +69,8 @@ if not docs_ok:
                     else:
                         print('[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]')
                         print(line[:-1])
+                elif 'unavailable' in line:
+                    continue
                 else:
                     print(line[:-1])
                 hashline += 1
@@ -82,26 +84,45 @@ if not docs_ok:
 else:
     print('Pack documentation is OK')
 
+# check and update version string in PyLNP.json
+if os.path.isfile(pack_folder_str + '/PyLNP.json'):
+    with open(pack_folder_str + '/PyLNP.json') as f:
+        if '"packVersion": "'+version_str in f.read():
+            print('Version in PyLNP.json is OK')
+            badjson = False
+        else:
+            badjson = True
+    if badjson:
+        with fileinput.input(files=(pack_folder_str + '/PyLNP.json'), inplace=True) as f:
+            for line in f:
+                if line.startswith('        "packVersion": "'):
+                    print('        "packVersion": "'+version_str+'"')
+                else:
+                    print(line[:-1])
+        print('PyLNP.json version string was fixed OK')
+        problems += 1
+
 # check LNPWin has 'version: 0', and if not fix that line
-fixing_file = False
-with fileinput.input(files=(pack_folder_str + '/LNP/LNPWin.txt')) as f:
-    for line in f:
-        if fileinput.isfirstline():
-            if line == 'version: 0\n':
-                print('LNPWin version string is OK')
-                break
-            else:
-                fixing_file = True
-                break
-if fixing_file:
-    with fileinput.input(files=(pack_folder_str + '/LNP/LNPWin.txt'), inplace=True) as f:
+if os.path.isfile(pack_folder_str + '/LNP/LNPWin.txt'):
+    fixing_file = False
+    with fileinput.input(files=(pack_folder_str + '/LNP/LNPWin.txt')) as f:
         for line in f:
             if fileinput.isfirstline():
-                print('version: 0')
-            else:
-                print(line[:-1])
-    print('LNPWin version string was fixed OK')
-    problems += 1
+                if line == 'version: 0\n':
+                    print('LNPWin version string is OK')
+                    break
+                else:
+                    fixing_file = True
+                    break
+    if fixing_file:
+        with fileinput.input(files=(pack_folder_str + '/LNP/LNPWin.txt'), inplace=True) as f:
+            for line in f:
+                if fileinput.isfirstline():
+                    print('version: 0')
+                else:
+                    print(line[:-1])
+        print('LNPWin version string was fixed OK')
+        problems += 1
 
 # check if embark profiles are installed, and if not copy them from defaults folder
 if os.path.isfile(data_folder + 'init/embark_profiles.txt'):
@@ -297,7 +318,7 @@ if make_pack:
 
     # insert checksum in old non-zipped docs
     hashline = 0
-    with fileinput.input(files=(folder + '/LNP/About/pack contents and changelog.txt'), inplace=True) as f:
+    with fileinput.input(files=(pack_folder_str + '/LNP/About/pack contents and changelog.txt'), inplace=True) as f:
         for line in f:
             if line.startswith('[tr][td]' + version_str + '[/td][td]'):
                 print('[tr][td]' + version_str + '[/td][td]' + MD5 + '[/td][/tr]')
