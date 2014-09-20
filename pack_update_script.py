@@ -201,7 +201,7 @@ for folder in os.listdir(graphics_folder):
 memory_layout_file = 'v0.40.' + minor_version_str + '_graphics.ini'
 for folder in os.listdir(utilities_folder):
     if fnmatch.fnmatch(folder, 'Dwarf Therapist *'):
-        DT_layout_path = utilities_folder + folder + '/etc/memory_layouts/windows/'
+        DT_layout_path = utilities_folder + folder + '/share/memory_layouts/windows/'
 if os.path.isfile(DT_layout_path + memory_layout_file):
     print('Therapist memory layout is OK')
 else:
