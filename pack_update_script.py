@@ -1,226 +1,243 @@
-import os
-import fnmatch
-import fileinput
-import shutil
-import re
-import zipfile
-import hashlib
-import urllib.request
+import os, fnmatch, fileinput, shutil, re, zipfile, hashlib, urllib.request
 
-print('A script to prepare the DF Starter Pack for upload.')
-print('Run from parent folder of pack.\n')
+def main():
+    get_variables()
+    
+    global tests
+    tests = []
+    
+    tests.append(documentation())
+    tests.append(pylnp_json())
+    tests.append(lnpwin_txt())
+    tests.append(embark_profiles())
+    tests.append(soundsense_config())
+    tests.append(announcement_filter())
+    tests.append(graphics_installed_and_all_simplified())
+    tests.append(dwarf_therapist())
+    if os.path.isfile(plugins_folder + 'twbt.plug.dll'):
+        tests.append(twbt_config_and_files())
+    
+    for tup in tests:
+        print('{0:27} {1:}'.format(tup[0], tup[1]))
+    
+    if make_pack():
+        prep_pack_for_upload()
 
-#get variables
-for folder in os.listdir('.'):
-    if fnmatch.fnmatch(folder, 'Dwarf Fortress 40_?? Starter Pack r*'):
-        version_str = folder.replace('Dwarf Fortress ', '').replace('Starter Pack ', '')
-        version_list = re.split('_| ', version_str)
-        major_version_str, minor_version_str, pack_version_str = version_list[0], version_list[1], version_list[2]
 
-        pack_folder_str = folder
-        graphics_folder = folder + '/LNP/graphics/'
-        utilities_folder = folder + '/LNP/utilities/'
-        data_folder = folder + '/Dwarf Fortress 0.40.' + minor_version_str + '/data/'
-        plugins_folder = folder + '/Dwarf Fortress 0.40.' + minor_version_str + '/hack/plugins/'
+def get_variables():
+    print('A script to prepare the DF Starter Pack for upload.')
+    print('Run from parent folder of pack.\n')
 
-        problems = 0
-        break
-if not os.path.isdir(data_folder):
-    print('Warning!    DF folder is malformed!')
-    problems = 99
+    global version_str, major_version_str, minor_version_str, pack_version_str
+    global pack_folder_str, graphics_folder, utilities_folder, data_folder, plugins_folder
+    #get variables
+    for folder in os.listdir('.'):
+        if fnmatch.fnmatch(folder, 'Dwarf Fortress 40_?? Starter Pack r*'):
+            version_str = folder.replace('Dwarf Fortress ', '').replace('Starter Pack ', '')
+            version_list = re.split('_| ', version_str)
+            major_version_str, minor_version_str, pack_version_str = version_list[0], version_list[1], version_list[2]
 
-# check contents and changelog documentation
-docs_ok = True
-changelog, hashline = False, 0
-with fileinput.input(files=(folder + '/LNP/About/pack contents and changelog.txt')) as f:
-    for line in f:
-        if changelog:
-            if line == '\n':
-                break
-            elif len(line) < 10:
-                docs_ok = False
-        elif line.startswith('[tr][td]'):
-            if ((hashline == 1 and not line == '[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]\n')
-                or (hashline > 1 and 'unavailable' in line)):
-                docs_ok = False
-            hashline += 1
-        elif line.strip() == version_str:
-            changelog = True
-if not docs_ok:
+            pack_folder_str = folder
+            graphics_folder = folder + '/LNP/graphics/'
+            utilities_folder = folder + '/LNP/utilities/'
+            data_folder = folder + '/Dwarf Fortress 0.40.' + minor_version_str + '/data/'
+            plugins_folder = folder + '/Dwarf Fortress 0.40.' + minor_version_str + '/hack/plugins/'
+            break
+    if not os.path.isdir(data_folder):
+        print('Warning!    DF folder is malformed!')
+        raise SystemExit
+
+
+def documentation():
+    # check contents and changelog documentation
+    docs_ok = True
     changelog, hashline = False, 0
-    with fileinput.input(files=(folder + '/LNP/About/pack contents and changelog.txt'), inplace=True) as f:
+    with fileinput.input(files=(pack_folder_str + '/LNP/About/pack contents and changelog.txt')) as f:
         for line in f:
             if changelog:
-                # remove short lines
                 if line == '\n':
-                    print()
-                    changelog = False
+                    break
                 elif len(line) < 10:
-                    continue
-                elif line.startswith('40_'):
-                    changelog = False
-                    print('\n'+line[:-1])
-                else:
-                    print(line[:-1])
+                    docs_ok = False
             elif line.startswith('[tr][td]'):
-                if hashline == 1:
-                    if version_str in line:
-                        print('[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]')
-                    else:
-                        print('[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]')
-                        print(line[:-1])
-                elif 'unavailable' in line:
-                    continue
-                else:
-                    print(line[:-1])
+                if ((hashline == 1 and not line == '[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]\n')
+                    or (hashline > 1 and 'unavailable' in line)):
+                    docs_ok = False
                 hashline += 1
             elif line.strip() == version_str:
                 changelog = True
-                print(line[:-1])
-            else:
-                print(line[:-1])
-    print('Pack documentation fixed OK')
-    problems += 1
-else:
-    print('Pack documentation is OK')
-
-# check and update version string in PyLNP.json
-if os.path.isfile(pack_folder_str + '/PyLNP.json'):
-    with open(pack_folder_str + '/PyLNP.json') as f:
-        if '"packVersion": "'+version_str in f.read():
-            print('Version in PyLNP.json is OK')
-            badjson = False
-        else:
-            badjson = True
-    if badjson:
-        with fileinput.input(files=(pack_folder_str + '/PyLNP.json'), inplace=True) as f:
+    if not docs_ok:
+        changelog, hashline = False, 0
+        with fileinput.input(files=(pack_folder_str + '/LNP/About/pack contents and changelog.txt'), inplace=True) as f:
             for line in f:
-                if line.startswith('        "packVersion": "'):
-                    print('        "packVersion": "'+version_str+'"')
+                if changelog:
+                    # remove short lines
+                    if line == '\n':
+                        print()
+                        changelog = False
+                    elif len(line) < 10:
+                        continue
+                    elif line.startswith('40_'):
+                        changelog = False
+                        print('\n'+line[:-1])
+                    else:
+                        print(line[:-1])
+                elif line.startswith('[tr][td]'):
+                    if hashline == 1:
+                        if version_str in line:
+                            print('[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]')
+                        else:
+                            print('[tr][td]'+version_str+'[/td][td]unavailable[/td][/tr]')
+                            print(line[:-1])
+                    elif 'unavailable' in line:
+                        continue
+                    else:
+                        print(line[:-1])
+                    hashline += 1
+                elif line.strip() == version_str:
+                    changelog = True
+                    print(line[:-1])
                 else:
                     print(line[:-1])
-        print('PyLNP.json version string was fixed OK')
-        problems += 1
+        return 'Pack documentation', 'was fixed'
+    else:
+        return 'Pack documentation', 'is OK'
 
-# check LNPWin has 'version: 0', and if not fix that line
-if os.path.isfile(pack_folder_str + '/LNP/LNPWin.txt'):
-    fixing_file = False
-    with fileinput.input(files=(pack_folder_str + '/LNP/LNPWin.txt')) as f:
-        for line in f:
-            if fileinput.isfirstline():
-                if line == 'version: 0\n':
-                    print('LNPWin version string is OK')
-                    break
-                else:
-                    fixing_file = True
-                    break
-    if fixing_file:
-        with fileinput.input(files=(pack_folder_str + '/LNP/LNPWin.txt'), inplace=True) as f:
+def pylnp_json():
+    # check and update version string in PyLNP.json
+    if os.path.isfile(pack_folder_str + '/PyLNP.json'):
+        with open(pack_folder_str + '/PyLNP.json') as f:
+            if '"packVersion": "'+version_str in f.read():
+                return 'Version in PyLNP.json',  'is OK'
+                badjson = False
+            else:
+                badjson = True
+        if badjson:
+            with fileinput.input(files=(pack_folder_str + '/PyLNP.json'), inplace=True) as f:
+                for line in f:
+                    if line.startswith('        "packVersion": "'):
+                        print('        "packVersion": "'+version_str+'"')
+                    else:
+                        print(line[:-1])
+            return 'PyLNP.json version string', 'was fixed'
+
+def lnpwin_txt():
+    # check LNPWin has 'version: 0', and if not fix that line
+    if os.path.isfile(pack_folder_str + '/LNP/LNPWin.txt'):
+        fixing_file = False
+        with fileinput.input(files=(pack_folder_str + '/LNP/LNPWin.txt')) as f:
             for line in f:
                 if fileinput.isfirstline():
-                    print('version: 0')
+                    if line == 'version: 0\n':
+                        return 'LNPWin version string', 'is OK'
+                    else:
+                        fixing_file = True
+                        break
+        if fixing_file:
+            with fileinput.input(files=(pack_folder_str + '/LNP/LNPWin.txt'), inplace=True) as f:
+                for line in f:
+                    if fileinput.isfirstline():
+                        print('version: 0')
+                    else:
+                        print(line[:-1])
+            return 'LNPWin version string', 'was fixed'
+
+def embark_profiles():
+    # check if embark profiles are installed, and if not copy them from defaults folder
+    if os.path.isfile(data_folder + 'init/embark_profiles.txt'):
+        return 'Embark profile install', 'is OK'
+    else:
+        shutil.copy2(pack_folder_str + '/LNP/defaults/embark_profiles.txt', data_folder + 'init/')
+        return 'Embark profile install', 'was fixed'
+
+def soundsense_config():
+    # check soundsense config and update if required
+    soundsense_lines = 0
+    with fileinput.input(files=(utilities_folder + '/soundsense/configuration.xml')) as f:
+        for line in f:
+            if (fileinput.lineno() == 3) or (fileinput.lineno() == 5):
+                if '0.40.' + minor_version_str in line:
+                    soundsense_lines += 1
+    if soundsense_lines == 2:
+        return 'Soundsense configuration', 'is OK'
+    else:
+        with fileinput.input(files=(utilities_folder + '/soundsense/configuration.xml'), inplace=True) as f:
+            for line in f:
+                if fileinput.lineno() == 3:
+                    print('\t' '<gamelog encoding="Cp850" path="..\\..\\..\\Dwarf Fortress 0.40.' + minor_version_str + '\\gamelog.txt"/>')
+                elif fileinput.lineno() == 5:
+                    print('\t\t' '<item path="..\\..\\..\\Dwarf Fortress 0.40.' + minor_version_str + '\\ss_fix.log"/>')
+                elif line == '</configuration>':
+                    print(line)
+                    break
                 else:
                     print(line[:-1])
-        print('LNPWin version string was fixed OK')
-        problems += 1
+        return 'Soundsense configuration', 'was fixed'
 
-# check if embark profiles are installed, and if not copy them from defaults folder
-if os.path.isfile(data_folder + 'init/embark_profiles.txt'):
-    print('Embark profile install is OK')
-else:
-    shutil.copy2(pack_folder_str + '/LNP/defaults/embark_profiles.txt', data_folder + 'init/')
-    print('Embark profiles were installed OK')
-    problems += 1
-
-# check soundsense config and update if required
-soundsense_lines = 0
-with fileinput.input(files=(utilities_folder + '/soundsense/configuration.xml')) as f:
-    for line in f:
-        if (fileinput.lineno() == 3) or (fileinput.lineno() == 5):
-            if '0.40.' + minor_version_str in line:
-                soundsense_lines += 1
-if soundsense_lines == 2:
-    print('Soundsense configuration is OK')
-else:
-    with fileinput.input(files=(utilities_folder + '/soundsense/configuration.xml'), inplace=True) as f:
-        for line in f:
-            if fileinput.lineno() == 3:
-                print('\t' '<gamelog encoding="Cp850" path="..\\..\\..\\Dwarf Fortress 0.40.' + minor_version_str + '\\gamelog.txt"/>')
-            elif fileinput.lineno() == 5:
-                print('\t\t' '<item path="..\\..\\..\\Dwarf Fortress 0.40.' + minor_version_str + '\\ss_fix.log"/>')
-            elif line == '</configuration>':
-                print(line)
-                break
+def announcement_filter():
+    # check announcement filter config and update if required
+    for folder in os.listdir(utilities_folder):
+        if fnmatch.fnmatch(folder, 'DF Announcement Filter 1.1'):
+            AF_settings_file = utilities_folder + folder + '/settings.txt'
+    update_path = False
+    line_is_path = False
+    line_int = -1
+    for line in open(AF_settings_file):
+        if line_is_path:
+            if line == '..\..\..\Dwarf Fortress 0.40.' + minor_version_str + '\n':
+                return 'Announcement Filter path', 'is OK'
             else:
-                print(line[:-1])
-    print('Soundsense configuration was fixed OK')
-    problems += 1
+                update_path = True
+            break
+        if line == '[DFPath]\n':
+            line_is_path = True
+    if update_path:
+        with fileinput.input(files=(AF_settings_file), inplace=True) as f:
+            for line in f:
+                if line == '[DFPath]\n':
+                    line_int = fileinput.lineno() + 1
+                if fileinput.lineno() == line_int:
+                    print('..\..\..\Dwarf Fortress 0.40.' + minor_version_str)
+                else:
+                    print(line[:-1])
+        return 'Announcement Filter path', 'was fixed'
 
-# check announcement filter config and update if required
-for folder in os.listdir(utilities_folder):
-    if fnmatch.fnmatch(folder, 'DF Announcement Filter 1.1'):
-        AF_settings_file = utilities_folder + folder + '/settings.txt'
-update_path = False
-line_is_path = False
-line_int = -1
-for line in open(AF_settings_file):
-    if line_is_path:
-        if line == '..\..\..\Dwarf Fortress 0.40.' + minor_version_str + '\n':
-            print('Announcement Filter path is OK')
-        else:
-            update_path = True
-        break
-    if line == '[DFPath]\n':
-        line_is_path = True
-if update_path:
-    with fileinput.input(files=(AF_settings_file), inplace=True) as f:
-        for line in f:
-            if line == '[DFPath]\n':
-                line_int = fileinput.lineno() + 1
-            if fileinput.lineno() == line_int:
-                print('..\..\..\Dwarf Fortress 0.40.' + minor_version_str)
-            else:
-                print(line[:-1])
-    print('Announcement Filter path was updated OK')
-    problems += 1
+def graphics_installed_and_all_simplified():
+    # check that graphics are simplified
+    for folder in os.listdir(graphics_folder):
+        if os.path.isfile(graphics_folder + folder + '/Dwarf Fortress.exe'):
+            # we can't return here, so we append directly to the list (cheeky)
+            tests.append((str(folder, 'graphics pack'), 'not simplified'))
+    # check that graphics are installed
+    if os.path.isfile(data_folder + 'art/Phoebus_16x16.png'):
+       return 'Phoebus graphics install', 'is OK'
+    else:
+        return 'Phoebus graphics', 'not installed'
 
-# check that graphics are installed
-if os.path.isfile(data_folder + 'art/Phoebus_16x16.png'):
-    print('Phoebus graphics install is OK')
-else:
-    print('Warning!    Phoebus graphics are not installed')
-    problems += 1
 
-# check that graphics are simplified
-for folder in os.listdir(graphics_folder):
-    if os.path.isfile(graphics_folder + folder + '/Dwarf Fortress.exe'):
-        print('Warning!    ', folder, 'graphics pack is not simplified')
-        problems += 1
+def dwarf_therapist():
+    # check that a compatible DT memory layout is present
+    memory_layout_file = 'v0.40.' + minor_version_str + '_graphics.ini'
+    for folder in os.listdir(utilities_folder):
+        if fnmatch.fnmatch(folder, 'Dwarf Therapist *'):
+            DT_layout_path = utilities_folder + folder + '/share/memory_layouts/windows/'
+    if os.path.isfile(DT_layout_path + memory_layout_file):
+        return 'Therapist memory layout', 'is OK'
+    else:
+        url = str('https://raw.githubusercontent.com/splintermind/'
+                  'Dwarf-Therapist/DF2014/share/memory_layouts/windows/'
+                  + memory_layout_file)
+        try:
+            url_content = urllib.request.urlopen(url).read().decode(encoding='UTF-8')
+            with open(DT_layout_path + memory_layout_file, 'w') as f:
+                f.write(url_content)
+            return 'Therapist memory layout', 'was downloaded'
+        except:
+            return 'Therapist memory layout', 'not available!'
 
-# check that a compatible DT memory layout is present
-memory_layout_file = 'v0.40.' + minor_version_str + '_graphics.ini'
-for folder in os.listdir(utilities_folder):
-    if fnmatch.fnmatch(folder, 'Dwarf Therapist *'):
-        DT_layout_path = utilities_folder + folder + '/share/memory_layouts/windows/'
-if os.path.isfile(DT_layout_path + memory_layout_file):
-    print('Therapist memory layout is OK')
-else:
-    problems += 1
-    url = str('https://raw.githubusercontent.com/splintermind/'
-              'Dwarf-Therapist/DF2014/share/memory_layouts/windows/'
-              + memory_layout_file)
-    try:
-        url_content = urllib.request.urlopen(url).read().decode(encoding='UTF-8')
-        with open(DT_layout_path + memory_layout_file, 'w') as f:
-            f.write(url_content)
-        print('DT memory layout downloaded OK')
-    except:
-        print('Warning!    DT memory layout unavailable')
-
-# check if TwbT is installed
-TwbT_folder = 'DF addons (zipped)/TwbT/'
-if os.path.isfile(plugins_folder + 'twbt.plug.dll'):
-    print('TwbT plugin install is OK')
+def twbt_config_and_files():
+    # check if TwbT is installed
+    TwbT_folder = '../Dropbox/Games/LNP Pack/DF addons (zipped)/TwbT/'
 
     # folders to install to:
     graphics_packs = []
@@ -281,23 +298,25 @@ if os.path.isfile(plugins_folder + 'twbt.plug.dll'):
             problem_packs.add(pack)
     # print messages if things were changed
     if not len(problem_packs) == 0:
-        problems += 1
         for pack in problem_packs:
-            print('Set up', pack, 'graphics for TwbT OK')
+            tests.append((str(pack, 'TwbT graphics'), 'was fixed'))
     else:
-        print('Every TwbT file is OK')
+        tests.append(('Each TwbT file install', 'is OK'))
+    
+    return 'TwbT plugin install', 'is OK'
 
 #########################################################################
-print()
 
-make_pack = False
-if problems == 0:
+def make_pack():
+    print()
     update = input('Do you want to zip the pack '
                    'and prepare docs?  ("y" for yes)\n    ')
     if update == 'y':
-        make_pack = True
+        return True
+    else:
+        return False
 
-if make_pack:
+def prep_pack_for_upload():
     # create zip, and move to past packages.  Remove older zip if present.
     if os.path.isfile(pack_folder_str + '.zip'):
         os.remove(pack_folder_str + '.zip')
@@ -360,3 +379,6 @@ if make_pack:
         f.write('\nMD5:  ' + MD5)
 
     print('\nDone!  Pack ready for upload')
+
+if __name__ == '__main__':
+    main()
