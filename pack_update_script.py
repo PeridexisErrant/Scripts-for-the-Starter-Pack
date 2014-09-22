@@ -237,7 +237,7 @@ def dwarf_therapist():
 
 def twbt_config_and_files():
     # check if TwbT is installed
-    TwbT_folder = '../Dropbox/Games/LNP Pack/DF addons (zipped)/TwbT/'
+    TwbT_folder = 'DF addons (zipped)/TwbT/'
 
     # folders to install to:
     graphics_packs = []
