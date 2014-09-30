@@ -2,7 +2,6 @@ import os, fnmatch, fileinput, shutil, re, zipfile, hashlib, urllib.request
 
 def main():
     get_variables()
-    
     global tests
     tests = []
     
@@ -19,7 +18,9 @@ def main():
     
     for tup in tests:
         print('{0:27} {1:}'.format(tup[0], tup[1]))
-    
+    for tup in tests:
+        if not tup[1] == 'is OK':
+            raise SystemExit
     if make_pack():
         prep_pack_for_upload()
 
@@ -219,7 +220,7 @@ def dwarf_therapist():
     # check that a compatible DT memory layout is present
     memory_layout_file = 'v0.40.' + minor_version_str + '_graphics.ini'
     for folder in os.listdir(utilities_folder):
-        if fnmatch.fnmatch(folder, 'Dwarf Therapist *'):
+        if fnmatch.fnmatch(folder, 'Dwarf*Therapist*'):
             DT_layout_path = utilities_folder + folder + '/share/memory_layouts/windows/'
     if os.path.isfile(DT_layout_path + memory_layout_file):
         return 'Therapist memory layout', 'is OK'
@@ -252,19 +253,11 @@ def twbt_config_and_files():
         art_folder = graphics_folder + pack + '/data/art/'
         init_folder = graphics_folder + pack + '/data/init/'
 
-        # get text tileset
-        for item in os.listdir(TwbT_folder):
-            if item.startswith(pack+'_') and item.endswith('_text.png'):
-                text_tiles = item
-                break
-        else:
-            text_tiles = 'ShizzleClean.txt'
-
         # files to copy into each graphics pack
         to_copy_list = ['shadows.png',
                         'overrides.txt',
                         'Vanilla DF - 24x - Items.png',
-                        text_tiles]
+                        'curses_640x300.png']
 
         # copy all the items into place if not present
         for item in os.listdir(TwbT_folder):
@@ -278,9 +271,9 @@ def twbt_config_and_files():
         
         # edit init files to work with TwbT
         init_OK = True
-        for string in ['[FONT:'+text_tiles+']'
-                       , '[FULLFONT:'+text_tiles+']'
-                       , '[PRINT_MODE:STANDARD]']:
+        for string in ['[FONT:curses_640x300.png]'
+                       , '[FULLFONT:curses_640x300.png]'
+                       , '[PRINT_MODE:TWBT]']:
             if not string in open(init_folder+'init.txt').read():
                 init_OK = False
         if not init_OK:
@@ -288,11 +281,11 @@ def twbt_config_and_files():
                                  , inplace=True) as f:
                 for line in f:
                     if line.startswith('[FONT:'):
-                        print('[FONT:'+text_tiles+']')
+                        print('[FONT:curses_640x300.png]')
                     elif line.startswith('[FULLFONT:'):
-                        print('[FULLFONT:'+text_tiles+']')
+                        print('[FULLFONT:curses_640x300.png]')
                     elif line.startswith('[PRINT_MODE:'):
-                        print('[PRINT_MODE:STANDARD]')
+                        print('[PRINT_MODE:TWBT]')
                     else:
                         print(line[:-1])
             problem_packs.add(pack)
