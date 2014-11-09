@@ -4,10 +4,9 @@ def main():
     get_variables()
     global tests
     tests = []
-    
+
     tests.append(documentation())
     tests.append(pylnp_json())
-    tests.append(lnpwin_txt())
     tests.append(embark_profiles())
     tests.append(soundsense_config())
     tests.append(announcement_filter())
@@ -122,27 +121,6 @@ def pylnp_json():
                         print(line[:-1])
             return 'PyLNP.json version string', 'was fixed'
 
-def lnpwin_txt():
-    # check LNPWin has 'version: 0', and if not fix that line
-    if os.path.isfile(pack_folder_str + '/LNP/LNPWin.txt'):
-        fixing_file = False
-        with fileinput.input(files=(pack_folder_str + '/LNP/LNPWin.txt')) as f:
-            for line in f:
-                if fileinput.isfirstline():
-                    if line == 'version: 0\n':
-                        return 'LNPWin version string', 'is OK'
-                    else:
-                        fixing_file = True
-                        break
-        if fixing_file:
-            with fileinput.input(files=(pack_folder_str + '/LNP/LNPWin.txt'), inplace=True) as f:
-                for line in f:
-                    if fileinput.isfirstline():
-                        print('version: 0')
-                    else:
-                        print(line[:-1])
-            return 'LNPWin version string', 'was fixed'
-
 def embark_profiles():
     # check if embark profiles are installed, and if not copy them from defaults folder
     if os.path.isfile(data_folder + 'init/embark_profiles.txt'):
@@ -208,7 +186,7 @@ def graphics_installed_and_all_simplified():
     for folder in os.listdir(graphics_folder):
         if os.path.isfile(graphics_folder + folder + '/Dwarf Fortress.exe'):
             # we can't return here, so we append directly to the list (cheeky)
-            tests.append((str(folder, 'graphics pack'), 'not simplified'))
+            tests.append((folder + ' graphics pack', 'not simplified'))
     # check that graphics are installed
     if os.path.isfile(data_folder + 'art/Phoebus_16x16.png'):
        return 'Phoebus graphics install', 'is OK'
@@ -292,7 +270,7 @@ def twbt_config_and_files():
     # print messages if things were changed
     if not len(problem_packs) == 0:
         for pack in problem_packs:
-            tests.append((str(pack, 'TwbT graphics'), 'was fixed'))
+            tests.append((pack + ' TwbT graphics', 'was fixed'))
     else:
         tests.append(('Each TwbT file install', 'is OK'))
     
