@@ -5,6 +5,7 @@ def main():
     global tests
     tests = []
 
+    tests.append(misc_files())
     tests.append(documentation())
     tests.append(pylnp_json())
     tests.append(embark_profiles())
@@ -29,7 +30,7 @@ def get_variables():
     print('Run from parent folder of pack.\n')
 
     global version_str, major_version_str, minor_version_str, pack_version_str
-    global pack_folder_str, graphics_folder, utilities_folder, data_folder, plugins_folder
+    global pack_folder_str, graphics_folder, utilities_folder, data_folder, plugins_folder, DF_folder
     #get variables
     for folder in os.listdir('.'):
         if fnmatch.fnmatch(folder, 'Dwarf Fortress 40_?? Starter Pack r*'):
@@ -38,6 +39,7 @@ def get_variables():
             major_version_str, minor_version_str, pack_version_str = version_list[0], version_list[1], version_list[2]
 
             pack_folder_str = folder
+            DF_folder = folder + '/Dwarf Fortress 0.40.' + minor_version_str + '/'
             graphics_folder = folder + '/LNP/graphics/'
             utilities_folder = folder + '/LNP/utilities/'
             data_folder = folder + '/Dwarf Fortress 0.40.' + minor_version_str + '/data/'
@@ -46,6 +48,14 @@ def get_variables():
     if not os.path.isdir(data_folder):
         print('Warning!    DF folder is malformed!')
         raise SystemExit
+
+
+def misc_files():
+    if os.path.isfile(pack_folder_str+'/PyLNP.user'):
+        os.remove(pack_folder_str+'/PyLNP.user')
+    if not os.path.isfile(DF_folder + 'dfhack.init'):
+        return 'dfhack.init', 'not found'
+    return 'dfhack.init', 'is OK'
 
 
 def documentation():
