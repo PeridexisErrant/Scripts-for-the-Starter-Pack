@@ -115,15 +115,14 @@ def documentation():
 
 def pylnp_json():
     # check and update version string in PyLNP.json
-    if os.path.isfile(pack_folder_str + '/PyLNP.json'):
-        with open(pack_folder_str + '/PyLNP.json') as f:
+    if os.path.isfile(pack_folder_str + '/LNP/PyLNP.json'):
+        with open(pack_folder_str + '/LNP/PyLNP.json') as f:
             if '"packVersion": "'+version_str in f.read():
                 return 'Version in PyLNP.json',  'is OK'
-                badjson = False
             else:
                 badjson = True
         if badjson:
-            with fileinput.input(files=(pack_folder_str + '/PyLNP.json'), inplace=True) as f:
+            with fileinput.input(files=(pack_folder_str + '/LNP/PyLNP.json'), inplace=True) as f:
                 for line in f:
                     if line.startswith('        "packVersion": "'):
                         print('        "packVersion": "'+version_str+'"')
