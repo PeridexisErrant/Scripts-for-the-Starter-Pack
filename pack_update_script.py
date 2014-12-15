@@ -51,11 +51,15 @@ def get_variables():
 
 
 def misc_files():
-    if os.path.isfile(pack_folder_str+'/PyLNP.user'):
-        os.remove(pack_folder_str+'/PyLNP.user')
+    files = ['/PyLNP.user', '/stderr.txt', '/stdout.txt']
+    for k in files:
+        if os.path.isfile(pack_folder_str+k):
+            os.remove(pack_folder_str+k)
+    with open(DF_folder + '/gamelog.txt', 'w') as f:
+        f.write('')
     if not os.path.isfile(DF_folder + 'dfhack.init'):
         return 'dfhack.init', 'not found'
-    return 'dfhack.init', 'is OK'
+    return 'misc. file status', 'is OK'
 
 
 def documentation():
@@ -357,6 +361,11 @@ def prep_pack_for_upload():
         for line in changelog_list:
             f.write(line)
         f.write('\nMD5:  ' + MD5)
+
+    # rename folder, to avoid removing checksum from docs etc.
+    next_pack_name = ('Dwarf Fortress '+major_version_str+'_'+minor_version_str+
+                      ' Starter Pack r'+str(int(pack_version_str[1:])+1))
+    os.rename(pack_folder_str, next_pack_name)
 
     print('\nDone!  Pack ready for upload')
 
