@@ -1,4 +1,4 @@
-import os, fnmatch, fileinput, shutil, re, zipfile, hashlib, urllib.request
+import os, fnmatch, fileinput, shutil, re, zipfile, hashlib, urllib.request, filecmp
 
 def main():
     get_variables()
@@ -6,6 +6,7 @@ def main():
     tests = []
 
     tests.append(misc_files())
+    tests.append(keybinds())
     tests.append(documentation())
     tests.append(pylnp_json())
     tests.append(embark_profiles())
@@ -60,6 +61,15 @@ def misc_files():
     if not os.path.isfile(DF_folder + 'dfhack.init'):
         return 'dfhack.init', 'not found'
     return 'misc. file status', 'is OK'
+
+
+def keybinds():
+    """Check that keybindings haven't changed between versions"""
+    if filecmp.cmp(data_folder + 'init/interface.txt',
+                   pack_folder_str + '/LNP/keybinds/Vanilla DF.txt',
+                   shallow=False):
+        return 'Keybinds status', 'is OK'
+    return 'Keybinds status', 'needs updating'
 
 
 def documentation():
@@ -144,6 +154,11 @@ def embark_profiles():
 
 def soundsense_config():
     # check soundsense config and update if required
+    if os.path.isfile(DF_folder + '/hack/scripts/soundsense.lua'):
+        lua_was_ok = True
+    else:
+        shutil.copyfile(utilities_folder + '/soundsense/dfhack/scripts/soundsense.lua', DF_folder + '/hack/scripts/soundsense.lua')
+        lua_was_ok = False
     soundsense_lines = 0
     with fileinput.input(files=(utilities_folder + '/soundsense/configuration.xml')) as f:
         for line in f:
@@ -151,7 +166,10 @@ def soundsense_config():
                 if '0.40.' + minor_version_str in line:
                     soundsense_lines += 1
     if soundsense_lines == 2:
-        return 'Soundsense configuration', 'is OK'
+        if lua_was_ok:
+            return 'Soundsense configuration', 'is OK'
+        else:
+            return 'Soundsense configuration', 'was fixed'
     else:
         with fileinput.input(files=(utilities_folder + '/soundsense/configuration.xml'), inplace=True) as f:
             for line in f:
