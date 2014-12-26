@@ -5,7 +5,6 @@ def main():
     global tests
     tests = []
 
-    tests.append(misc_files())
     tests.append(keybinds())
     tests.append(documentation())
     tests.append(pylnp_json())
@@ -13,9 +12,11 @@ def main():
     tests.append(soundsense_config())
     tests.append(announcement_filter())
     tests.append(graphics_installed_and_all_simplified())
+    tests.append(misc_files())
     tests.append(dwarf_therapist())
     if os.path.isfile(plugins_folder + 'twbt.plug.dll'):
         tests.append(twbt_config_and_files())
+    check_graphics()
     
     for tup in tests:
         print('{0:27} {1:}'.format(tup[0], tup[1]))
@@ -61,6 +62,16 @@ def misc_files():
     if not os.path.isfile(DF_folder + 'dfhack.init'):
         return 'dfhack.init', 'not found'
     return 'misc. file status', 'is OK'
+
+
+def check_graphics():
+    """Check that I haven't forgotten to copy over a graphics pack."""
+    # later, can I pull from Fricy's repo to fix this?
+    packs = ['ASCII Default', 'CLA', 'Ironhand', 'Mayday',
+             'Obsidian', 'Phoebus', 'Spacefox']
+    for p in packs:
+        if not os.path.isdir(graphics_folder + p):
+            tests.append(('Graphics pack:  ' + p, 'not found'))
 
 
 def keybinds():
