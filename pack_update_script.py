@@ -1,4 +1,4 @@
-import os, fnmatch, fileinput, shutil, re, zipfile, hashlib, urllib.request, filecmp
+import os, fnmatch, fileinput, shutil, re, zipfile, hashlib, urllib.request, filecmp, glob
 
 def main():
     get_variables()
@@ -59,6 +59,9 @@ def misc_files():
             os.remove(pack_folder_str+k)
     with open(DF_folder + '/gamelog.txt', 'w') as f:
         f.write('')
+    if not all(os.path.isfile(DF_folder + os.path.relpath(f, pack_folder_str + '/LNP/extras/'))
+           for f in glob.glob(pack_folder_str + '/LNP/extras/*')):
+        tests.append(('Extras files', 'need installation'))
     if not os.path.isfile(DF_folder + 'dfhack.init'):
         return 'dfhack.init', 'not found'
     return 'misc. file status', 'is OK'
