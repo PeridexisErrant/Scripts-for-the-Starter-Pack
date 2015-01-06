@@ -1,6 +1,7 @@
 import os, fnmatch, fileinput, shutil, re, zipfile, hashlib, urllib.request, filecmp, glob
 
 def main():
+    """Call all the components of the script."""
     get_variables()
     global tests
     tests = []
@@ -14,9 +15,7 @@ def main():
     tests.append(graphics_installed_and_all_simplified())
     tests.append(misc_files())
     tests.append(dwarf_therapist())
-    if os.path.isfile(plugins_folder + 'twbt.plug.dll'):
-        tests.append(twbt_config_and_files())
-    check_graphics()
+    tests.append(twbt_config_and_files())
     
     for tup in tests:
         print('{0:27} {1:}'.format(tup[0], tup[1]))
@@ -28,6 +27,7 @@ def main():
 
 
 def get_variables():
+    """Set up a lot of paths as global variables (bad but easy!)"""
     print('A script to prepare the DF Starter Pack for upload.')
     print('Run from parent folder of pack.\n')
 
@@ -53,28 +53,20 @@ def get_variables():
 
 
 def misc_files():
+    """Checks various little bits."""
     files = ['/PyLNP.user', '/stderr.txt', '/stdout.txt']
     for k in files:
         if os.path.isfile(pack_folder_str+k):
             os.remove(pack_folder_str+k)
     with open(DF_folder + '/gamelog.txt', 'w') as f:
         f.write('')
-    if not all(os.path.isfile(DF_folder + os.path.relpath(f, pack_folder_str + '/LNP/extras/'))
-           for f in glob.glob(pack_folder_str + '/LNP/extras/*')):
+    if not all(os.path.exists(DF_folder + os.path.relpath(f, pack_folder_str + '/LNP/extras/'))
+               for f in glob.glob(pack_folder_str + '/LNP/extras/*')):
+        # note: this only checks top-level files and folders, not all files
         tests.append(('Extras files', 'need installation'))
     if not os.path.isfile(DF_folder + 'dfhack.init'):
         return 'dfhack.init', 'not found'
     return 'misc. file status', 'is OK'
-
-
-def check_graphics():
-    """Check that I haven't forgotten to copy over a graphics pack."""
-    # later, can I pull from Fricy's repo to fix this?
-    packs = ['ASCII Default', 'CLA', 'Ironhand', 'Mayday',
-             'Obsidian', 'Phoebus', 'Spacefox']
-    for p in packs:
-        if not os.path.isdir(graphics_folder + p):
-            tests.append(('Graphics pack:  ' + p, 'not found'))
 
 
 def keybinds():
@@ -87,7 +79,7 @@ def keybinds():
 
 
 def documentation():
-    # check contents and changelog documentation
+    """Check contents list, changelog, and documentation."""
     docs_ok = True
     changelog, hashline = False, 0
     with fileinput.input(files=(pack_folder_str + '/LNP/About/pack contents and changelog.txt')) as f:
@@ -142,7 +134,7 @@ def documentation():
         return 'Pack documentation', 'is OK'
 
 def pylnp_json():
-    # check and update version string in PyLNP.json
+    """Check and update version string in PyLNP.json"""
     if os.path.isfile(pack_folder_str + '/LNP/PyLNP.json'):
         with open(pack_folder_str + '/LNP/PyLNP.json') as f:
             if '"packVersion": "'+version_str in f.read():
@@ -159,15 +151,16 @@ def pylnp_json():
             return 'PyLNP.json version string', 'was fixed'
 
 def embark_profiles():
-    # check if embark profiles are installed, and if not copy them from defaults folder
+    """Check if embark profiles are installed, and if not copy them from defaults folder."""
     if os.path.isfile(data_folder + 'init/embark_profiles.txt'):
         return 'Embark profile install', 'is OK'
     else:
         shutil.copy2(pack_folder_str + '/LNP/defaults/embark_profiles.txt', data_folder + 'init/')
         return 'Embark profile install', 'was fixed'
+    # later: check that the embarks in /extras/ are the same as in /defaults/
 
 def soundsense_config():
-    # check soundsense config and update if required
+    """Check soundsense config and update if required."""
     if os.path.isfile(DF_folder + '/hack/scripts/soundsense.lua'):
         lua_was_ok = True
     else:
@@ -199,13 +192,13 @@ def soundsense_config():
         return 'Soundsense configuration', 'was fixed'
 
 def announcement_filter():
-    # check announcement filter config and update if required
-    for folder in os.listdir(utilities_folder):
-        if fnmatch.fnmatch(folder, 'DF Announcement Filter 1.1'):
-            AF_settings_file = utilities_folder + folder + '/settings.txt'
-    update_path = False
-    line_is_path = False
-    line_int = -1
+    """Check announcement filter config and update if required."""
+    folder = glob.glob(utilities_folder + 'DF Announcement Filter*')
+    if folder:
+        AF_settings_file = folder[0] + '/settings.txt'
+    else:
+        return 'Announcement Filter path', 'not found'
+    update_path, line_is_path, line_int = False, False, -1
     for line in open(AF_settings_file):
         if line_is_path:
             if line == '..\..\..\Dwarf Fortress 0.40.' + minor_version_str + '\n':
@@ -227,7 +220,15 @@ def announcement_filter():
         return 'Announcement Filter path', 'was fixed'
 
 def graphics_installed_and_all_simplified():
-    # check that graphics are simplified
+    """Check that I haven't forgotten to copy over a graphics pack."""
+    # later, can I pull from Fricy's repo to fix this?
+    packs = ['ASCII Default', 'CLA', 'Ironhand', 'Mayday',
+             'Obsidian', 'Phoebus', 'Spacefox']
+    for p in packs:
+        if not os.path.isdir(graphics_folder + p):
+            tests.append(('Graphics pack:  ' + p, 'not found'))
+
+    """Check that graphics are simplified."""
     for folder in os.listdir(graphics_folder):
         if os.path.isfile(graphics_folder + folder + '/Dwarf Fortress.exe'):
             # we can't return here, so we append directly to the list (cheeky)
@@ -240,7 +241,7 @@ def graphics_installed_and_all_simplified():
 
 
 def dwarf_therapist():
-    # check that a compatible DT memory layout is present
+    """Check that DT memory layout for the current version is present."""
     memory_layout_file = 'v0.40.' + minor_version_str + '_graphics.ini'
     for folder in os.listdir(utilities_folder):
         if fnmatch.fnmatch(folder, 'Dwarf*Therapist*'):
@@ -260,7 +261,12 @@ def dwarf_therapist():
             return 'Therapist memory layout', 'not available!'
 
 def twbt_config_and_files():
-    # check if TwbT is installed
+    """Check if TwbT is installed."""    
+    if not os.path.isfile(plugins_folder + 'twbt.plug.dll'):
+        return 'TwbT plugin', 'not installed'
+        
+    # note: much of this can be removed once PyLNP updates it's tileset support
+
     TwbT_folder = 'DF addons (zipped)/TwbT/'
 
     # folders to install to:
@@ -324,8 +330,8 @@ def twbt_config_and_files():
 #########################################################################
 
 def make_pack():
-    print()
-    update = input('Do you want to zip the pack '
+    """Get user bool to continue or not."""
+    update = input('\nDo you want to zip the pack '
                    'and prepare docs?  ("y" for yes)\n    ')
     if update == 'y':
         return True
@@ -333,7 +339,7 @@ def make_pack():
         return False
 
 def prep_pack_for_upload():
-    # create zip, and move to past packages.  Remove older zip if present.
+    """Create zip, create updated documentation, etc."""
     if os.path.isfile(pack_folder_str + '.zip'):
         os.remove(pack_folder_str + '.zip')
 
