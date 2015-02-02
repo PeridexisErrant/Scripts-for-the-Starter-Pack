@@ -145,7 +145,7 @@ def pylnp_json():
             with fileinput.input(files=(pack_folder_str + '/LNP/PyLNP.json'), inplace=True) as f:
                 for line in f:
                     if line.startswith('        "packVersion": "'):
-                        print('        "packVersion": "'+version_str+'"')
+                        print('        "packVersion": "'+version_str+'",')
                     else:
                         print(line[:-1])
             return 'PyLNP.json version string', 'was fixed'
